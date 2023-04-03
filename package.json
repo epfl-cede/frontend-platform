@@ -52,6 +52,7 @@
   },
   "dependencies": {
     "@cospired/i18n-iso-languages": "2.2.0",
+    "@edx/browserslist-config": "1.1.1",
     "@formatjs/intl-pluralrules": "^4.3.3",
     "@formatjs/intl-relativetimeformat": "^10.0.1",
     "axios": "0.26.1",
