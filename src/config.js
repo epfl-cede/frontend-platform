@@ -171,6 +171,8 @@ let config = {
   MFE_CONFIG_API_URL: process.env.MFE_CONFIG_API_URL,
   APP_ID: process.env.APP_ID,
   SUPPORT_URL: process.env.SUPPORT_URL,
+  CATALOG_BASE_URL: process.env.CATALOG_BASE_URL,
+  CATALOG_ORGANIZATION_NAME: process.env.CATALOG_ORGANIZATION_NAME,
 };
 
 /**
@@ -324,4 +326,6 @@ export function ensureConfig(keys, requester = 'unspecified application code') {
  * @property {string} MFE_CONFIG_API_URL
  * @property {string} APP_ID
  * @property {string} SUPPORT_URL
+ * @property {string} CATALOG_BASE_URL
+ * @property {string} CATALOG_ORGANIZATION_NAME
  */

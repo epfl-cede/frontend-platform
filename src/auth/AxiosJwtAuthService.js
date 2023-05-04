@@ -230,6 +230,7 @@ class AxiosJwtAuthService {
         email: decodedAccessToken.email,
         userId: decodedAccessToken.user_id,
         username: decodedAccessToken.preferred_username,
+        displayname: decodedAccessToken.display_username,
         roles: decodedAccessToken.roles || [],
         administrator: decodedAccessToken.administrator,
         name: decodedAccessToken.name,
