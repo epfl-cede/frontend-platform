@@ -67,6 +67,8 @@ let config = {
   LOGO_TRADEMARK_URL: process.env.LOGO_TRADEMARK_URL,
   LOGO_WHITE_URL: process.env.LOGO_WHITE_URL,
   FAVICON_URL: process.env.FAVICON_URL,
+  CATALOG_BASE_URL: process.env.CATALOG_BASE_URL,
+  CATALOG_ORGANIZATION_NAME: process.env.CATALOG_ORGANIZATION_NAME,
 };
 
 /**
@@ -193,4 +195,6 @@ export function ensureConfig(keys, requester = 'unspecified application code') {
  * @property {string} LOGO_TRADEMARK_URL
  * @property {string} LOGO_WHITE_URL
  * @property {string} FAVICON_URL
+ * @property {string} CATALOG_BASE_URL
+ * @property {string} CATALOG_ORGANIZATION_NAME
  */
