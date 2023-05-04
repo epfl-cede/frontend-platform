@@ -35,6 +35,7 @@ const jwtTokens = {
     decoded: {
       user_id: '12345',
       preferred_username: 'test',
+      display_username: 'Test',
       administrator: false,
       exp: yesterdayInSeconds,
     },
@@ -43,12 +44,14 @@ const jwtTokens = {
     decoded: {
       user_id: '12345',
       preferred_username: 'test',
+      display_username: 'Test',
       administrator: false,
       exp: tomorrowInSeconds,
     },
     formatted: {
       userId: '12345',
       username: 'test',
+      diplayname: 'Test',
       administrator: false,
       roles: [],
     },
@@ -57,6 +60,7 @@ const jwtTokens = {
     decoded: {
       user_id: '12345',
       preferred_username: 'test',
+      display_username: 'Test',
       administrator: true,
       roles: ['role1', 'role2'],
       exp: tomorrowInSeconds,
@@ -64,6 +68,7 @@ const jwtTokens = {
     formatted: {
       userId: '12345',
       username: 'test',
+      diplayname: 'Test',
       administrator: true,
       roles: ['role1', 'role2'],
     },
