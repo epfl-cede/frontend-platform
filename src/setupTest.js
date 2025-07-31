@@ -1,15 +1,11 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import 'core-js/stable';
-import 'regenerator-runtime/runtime';
-
-import Enzyme from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
-
-Enzyme.configure({ adapter: new Adapter() });
+import '@testing-library/jest-dom';
 
 // These configuration values are usually set in webpack's EnvironmentPlugin however
 // Jest does not use webpack so we need to set these so for testing
 process.env.ACCESS_TOKEN_COOKIE_NAME = 'edx-jwt-cookie-header-payload';
+process.env.ACCOUNT_PROFILE_URL = 'http://localhost:1995';
+process.env.ACCOUNT_SETTINGS_URL = 'http://localhost:1997';
 process.env.BASE_URL = 'localhost:8080';
 process.env.CREDENTIALS_BASE_URL = 'http://localhost:18150';
 process.env.CSRF_TOKEN_API_PATH = '/csrf/api/v1/token';
@@ -32,6 +28,9 @@ process.env.LOGO_URL = 'https://edx-cdn.org/v3/default/logo.svg';
 process.env.LOGO_TRADEMARK_URL = 'https://edx-cdn.org/v3/default/logo-trademark.svg';
 process.env.LOGO_WHITE_URL = 'https://edx-cdn.org/v3/default/logo-white.svg';
 process.env.FAVICON_URL = 'https://edx-cdn.org/v3/default/favicon.ico';
+process.env.MFE_CONFIG_API_URL = '';
+process.env.APP_ID = '';
+process.env.SUPPORT_URL = 'https://support.edx.org';
 process.env.CATALOG_BASE_URL  'http://localhost:19000';
 process.env.CATALOG_ORGANIZATION_NAME  'test';
 

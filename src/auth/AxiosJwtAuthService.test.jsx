@@ -7,6 +7,7 @@ import AxiosJwtAuthService from './AxiosJwtAuthService';
 const mockLoggingService = {
   logInfo: jest.fn(),
   logError: jest.fn(),
+  setCustomAttribute: jest.fn(),
 };
 
 const authOptions = {
@@ -83,7 +84,7 @@ Object.keys(jwtTokens).forEach((jwtTokenName) => {
 const mockCsrfToken = 'thetokenvalue';
 const mockApiEndpointPath = `${process.env.BASE_URL}/api/v1/test`;
 
-global.location = { ...global.location, assign: jest.fn() };
+global.location ??= { ...global.location, assign: jest.fn() };
 
 const mockCookies = new Cookies();
 
@@ -159,7 +160,7 @@ const expectNoCallToCsrfTokenFetch = () => {
 };
 
 const expectRequestToHaveJwtAuth = (request) => {
-  expect(request.headers['USE-JWT-COOKIE']).toBe(true);
+  expect(request.headers['USE-JWT-COOKIE']).toBeTruthy();
   expect(request.withCredentials).toBe(true);
 };
 
@@ -209,6 +210,7 @@ beforeEach(() => {
   };
   mockLoggingService.logInfo.mockReset();
   mockLoggingService.logError.mockReset();
+  mockLoggingService.setCustomAttribute.mockReset();
   service.getCsrfTokenService().clearCsrfTokenCache();
   axiosMock.onGet('/unauthorized').reply(401);
   axiosMock.onGet('/forbidden').reply(403);
@@ -285,9 +287,9 @@ describe('getAuthenticatedHttpClient', () => {
     expect(client1).not.toBeNull();
     expect(client2).not.toBeNull();
 
-    // the cached client should have ``cache`` property if configured properly
-    expect(client1).toHaveProperty('cache');
-    expect(client2).not.toHaveProperty('cache');
+    // the cached client should have ``storage`` property if configured properly
+    expect(client1).toHaveProperty('storage');
+    expect(client2).not.toHaveProperty('storage');
   });
 });
 
@@ -474,7 +476,7 @@ describe('authenticatedHttpClient usage', () => {
             expectNoCallToCsrfTokenFetch();
             expectLogFunctionToHaveBeenCalledWithMessage(
               mockLoggingService.logError.mock.calls[0],
-              '[frontend-auth] Axios Error (Response): 403 http://localhost:18000/login_refresh (empty response)',
+              '[frontend-auth] Axios Error (Response): 403 - See custom attributes for details.',
               {
                 httpErrorRequestMethod: 'post',
                 httpErrorResponseData: '(empty response)',
@@ -503,7 +505,7 @@ describe('authenticatedHttpClient usage', () => {
           expectNoCallToCsrfTokenFetch();
           expectLogFunctionToHaveBeenCalledWithMessage(
             mockLoggingService.logError.mock.calls[0],
-            '[frontend-auth] Axios Error (Config): timeout of 0ms exceeded post http://localhost:18000/login_refresh',
+            '[frontend-auth] Axios Error (Config): See custom attributes for details.',
             {
               httpErrorRequestMethod: 'post',
               httpErrorMessage: 'timeout of 0ms exceeded',
@@ -703,7 +705,7 @@ describe('authenticatedHttpClient usage', () => {
       return client.get('/unauthorized').catch(() => {
         expectLogFunctionToHaveBeenCalledWithMessage(
           mockLoggingService.logInfo.mock.calls[0],
-          'Axios Error (Response): 401 /unauthorized (empty response)',
+          'Axios Error (Response): 401 - See custom attributes for details.',
           {
             httpErrorRequestMethod: 'get',
             httpErrorStatus: 401,
@@ -722,7 +724,7 @@ describe('authenticatedHttpClient usage', () => {
       return client.get('/forbidden').catch(() => {
         expectLogFunctionToHaveBeenCalledWithMessage(
           mockLoggingService.logInfo.mock.calls[0],
-          'Axios Error (Response): 403 /forbidden (empty response)',
+          'Axios Error (Response): 403 - See custom attributes for details.',
           {
             httpErrorRequestMethod: 'get',
             httpErrorStatus: 403,
@@ -866,6 +868,7 @@ describe('fetchAuthenticatedUser', () => {
     setJwtTokenRefreshResponseTo(200, jwtTokens.valid.encoded);
     return service.fetchAuthenticatedUser().then((authenticatedUserAccessToken) => {
       expect(authenticatedUserAccessToken).toEqual(jwtTokens.valid.formatted);
+      expect(mockLoggingService.setCustomAttribute).toHaveBeenCalledWith('userId', jwtTokens.valid.formatted.userId);
       expectSingleCallToJwtTokenRefresh();
     });
   });
@@ -883,67 +886,87 @@ describe('fetchAuthenticatedUser', () => {
     setJwtTokenRefreshResponseTo(401, null);
     return service.fetchAuthenticatedUser({ forceRefresh: true }).then((authenticatedUserAccessToken) => {
       expect(authenticatedUserAccessToken).toEqual(null);
+      expect(mockLoggingService.setCustomAttribute).not.toHaveBeenCalled();
       expectSingleCallToJwtTokenRefresh();
     });
   });
 });
 
-// These tests all make real network calls to https://httpbin.org, just as documented in the axios-cache-adapter
-// tests. axios-mock-adapter can not be used to mock requests with axios-cache-adapter.
+// These tests all make real network calls to http://httpbin.org.
 describe('Cache Functionality', () => {
+  const getUrl = 'https://jsonplaceholder.typicode.com/posts/1';
+  const postUrl = 'https://jsonplaceholder.typicode.com/posts';
+  const requestId = 'get-jsonplaceholder-posts';
+
+  const getWithRequestId = async (config = {}) => cachedClient.get(getUrl, {
+    id: requestId,
+    ...config,
+  });
+
+  const postWithRequestId = async (config = {}) => cachedClient.post(postUrl, {
+    ...config,
+  });
+
   describe('No JWT Token Found on Load', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       setJwtCookieTo(null);
       setJwtTokenRefreshResponseTo(200, jwtTokens.valid.encoded);
-      cachedClient.cache.clear();
+
+      // Remove cache for previous requests
+      await cachedClient.storage.remove(requestId);
     });
 
     it('Cached GET: does not refresh JWT on second request with valid JWT', async () => {
-      const response1 = await cachedClient.get('https://httpbin.org/get');
-      // Verify first request was not pulled from cache
-      expect(response1.request.fromCache).toEqual(undefined);
+      const response1 = await getWithRequestId();
 
-      const response2 = await cachedClient.get('https://httpbin.org/get');
+      // Verify first request was not pulled from cache
+      expect(response1.cached).toEqual(false);
+
+      const response2 = await getWithRequestId();
       expectSingleCallToJwtTokenRefresh();
       // Like the uncached, client the CSRF token shouldn't be fetched either
       expectNoCallToCsrfTokenFetch();
       expectRequestToHaveJwtAuth(response2.config);
-      expect(response2.request.fromCache).toEqual(true);
+      expect(response2.cached).toEqual(true);
     });
 
-    it('Cached GET: clears cached entry if clearCacheEntry = true', async () => {
-      const response1 = await cachedClient.get('https://httpbin.org/get');
+    it('Cached GET: clears cached entry if cache.override = true', async () => {
+      const response1 = await getWithRequestId();
       // Verify first request was not pulled from cache
-      expect(response1.request.fromCache).toEqual(undefined);
+      expect(response1.cached).toEqual(false);
 
-      const response2 = await cachedClient.get('https://httpbin.org/get');
-      expect(response2.request.fromCache).toEqual(true);
+      const response2 = await getWithRequestId();
+      expect(response2.cached).toEqual(true);
 
-      const response3 = await cachedClient.get('https://httpbin.org/get', { clearCacheEntry: true });
-      expect(response3.request.fromCache).toEqual(undefined);
+      const response3 = await getWithRequestId({
+        cache: {
+          override: true,
+        },
+      });
+      expect(response3.cached).toEqual(false);
     });
 
     it('Always refreshes the JWT on GET requests with invalid JWT', async () => {
-      const response1 = await cachedClient.get('https://httpbin.org/get');
+      const response1 = await getWithRequestId();
       setJwtCookieTo(null);
       setJwtTokenRefreshResponseTo(200, jwtTokens.valid.encoded);
       expectRequestToHaveJwtAuth(response1.config);
 
-      const response2 = await cachedClient.get('https://httpbin.org/get');
+      const response2 = await getWithRequestId();
       expect(accessTokenAxiosMock.history.post.length).toBe(2);
       // Like the uncached client, the CSRF token shouldn't be fetched either
       expectNoCallToCsrfTokenFetch();
       expectRequestToHaveJwtAuth(response2.config);
-      expect(response2.request.fromCache).toEqual(true);
+      expect(response2.cached).toEqual(true);
     });
 
     it('Always refreshes the JWT on POST requests', async () => {
-      const response1 = await cachedClient.post('https://httpbin.org/post');
+      const response1 = await postWithRequestId();
       setJwtCookieTo(null);
       setJwtTokenRefreshResponseTo(200, jwtTokens.valid.encoded);
       expectRequestToHaveJwtAuth(response1.config);
 
-      const response2 = await cachedClient.post('https://httpbin.org/post');
+      const response2 = await postWithRequestId();
       expectRequestToHaveJwtAuth(response2.config);
       // Verify the JWT got refreshed for both requests that do not have a JWT
       expect(accessTokenAxiosMock.history.post.length).toBe(2);
@@ -955,8 +978,8 @@ describe('Cache Functionality', () => {
 
     it('Parallel GET Requests: refresh the jwt token only once', async () => {
       const responses = await Promise.all([
-        cachedClient.get('https://httpbin.org/get'),
-        cachedClient.get('https://httpbin.org/get'),
+        getWithRequestId(),
+        getWithRequestId(),
       ]);
 
       expectSingleCallToJwtTokenRefresh();
@@ -967,8 +990,8 @@ describe('Cache Functionality', () => {
 
     it('Parallel POST Requests: refresh the jwt and csrf tokens only once', async () => {
       const responses = await Promise.all([
-        cachedClient.post('https://httpbin.org/post'),
-        cachedClient.post('https://httpbin.org/post'),
+        postWithRequestId(),
+        postWithRequestId(),
       ]);
       expectSingleCallToJwtTokenRefresh();
       expectSingleCallToCsrfTokenFetch();
@@ -986,7 +1009,7 @@ describe('Cache Functionality', () => {
     });
 
     it('GET request: refreshes the jwt token', async () => {
-      const response = await cachedClient.get('https://httpbin.org/get');
+      const response = await cachedClient.get(getUrl);
       expectSingleCallToJwtTokenRefresh();
       expectNoCallToCsrfTokenFetch();
       expectRequestToHaveJwtAuth(response.config);
@@ -994,7 +1017,7 @@ describe('Cache Functionality', () => {
 
     ['post', 'put', 'patch', 'delete'].forEach((method) => {
       it(`${method.toUpperCase()}: refreshes the csrf and jwt tokens`, async () => {
-        const response = await cachedClient[method](`https://httpbin.org/${method}`);
+        const response = await cachedClient[method](method === 'post' ? postUrl : getUrl);
         expectSingleCallToJwtTokenRefresh();
         expectSingleCallToCsrfTokenFetch();
         expectRequestToHaveJwtAuth(response.config);
@@ -1011,7 +1034,7 @@ describe('Cache Functionality', () => {
 
     it('GET request: does not attempt to refresh the jwt token', async () => {
       setJwtCookieTo(jwtTokens.valid.encoded);
-      const response = await cachedClient.get('https://httpbin.org/get');
+      const response = await getWithRequestId();
       expectNoCallToJwtTokenRefresh();
       expectNoCallToCsrfTokenFetch();
       expectRequestToHaveJwtAuth(response.config);
@@ -1020,7 +1043,9 @@ describe('Cache Functionality', () => {
     ['post', 'put', 'patch', 'delete'].forEach((method) => {
       it(`${method.toUpperCase()}: refreshes the csrf token but does not attempt to refresh the jwt token`, async () => {
         setJwtCookieTo(jwtTokens.valid.encoded);
-        const response = await cachedClient[method](`https://httpbin.org/${method}`);
+        const response = await cachedClient[method](method === 'post' ? postUrl : getUrl, {
+          id: requestId,
+        });
         expectNoCallToJwtTokenRefresh();
         expectSingleCallToCsrfTokenFetch();
         expectRequestToHaveJwtAuth(response.config);
@@ -1040,13 +1065,15 @@ describe('Cache Functionality', () => {
         it(`${method.toUpperCase()}: throws an error and calls logError`, async () => {
           expect.hasAssertions();
           try {
-            await cachedClient[method](`https://httpbin.org/${method}`);
+            await cachedClient[method](getUrl, {
+              id: requestId,
+            });
           } catch (err) {
             expectSingleCallToJwtTokenRefresh();
             expectNoCallToCsrfTokenFetch();
             expectLogFunctionToHaveBeenCalledWithMessage(
               mockLoggingService.logError.mock.calls[0],
-              '[frontend-auth] Axios Error (Response): 403 http://localhost:18000/login_refresh (empty response)',
+              '[frontend-auth] Axios Error (Response): 403 - See custom attributes for details.',
               {
                 httpErrorRequestMethod: 'post',
                 httpErrorResponseData: '(empty response)',

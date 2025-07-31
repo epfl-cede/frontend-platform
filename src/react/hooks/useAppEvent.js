@@ -1,6 +1,6 @@
-/* eslint-disable import/prefer-default-export */
 import { useEffect } from 'react';
-import { subscribe, unsubscribe } from '../pubSub';
+
+import { subscribe, unsubscribe } from '../../pubSub';
 
 /**
  * A React hook that allows functional components to subscribe to application events.  This should
@@ -9,15 +9,16 @@ import { subscribe, unsubscribe } from '../pubSub';
  * mechanism.
  *
  * @memberof module:React
+ *
  * @param {string} type
  * @param {function} callback
  */
-export const useAppEvent = (type, callback) => {
+const useAppEvent = (type, callback) => {
   useEffect(() => {
     const subscriptionToken = subscribe(type, callback);
 
-    return function cleanup() {
-      unsubscribe(subscriptionToken);
-    };
-  }, []);
+    return () => unsubscribe(subscriptionToken);
+  }, [callback, type]);
 };
+
+export default useAppEvent;

@@ -18,7 +18,7 @@
  *
  *
  * @module Internationalization
- * @see {@link https://github.com/edx/frontend-platform/blob/master/docs/how_tos/i18n.rst}
+ * @see {@link https://github.com/openedx/frontend-platform/blob/master/docs/how_tos/i18n.rst}
  * @see {@link https://formatjs.io/docs/react-intl/components/ Intl} for components exported from this module.
  *
  */
@@ -104,6 +104,7 @@ export {
   getMessages,
   isRtl,
   handleRtl,
+  mergeMessages,
   LOCALE_CHANGED,
   LOCALE_TOPIC,
 } from './lib';

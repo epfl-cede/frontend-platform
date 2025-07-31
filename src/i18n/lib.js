@@ -39,6 +39,8 @@ const supportedLocales = [
   'ar', // Arabic
   // NOTE: 'en' is not included in this list intentionally, since it's the fallback.
   'es-419', // Spanish, Latin American
+  'fa', // Farsi
+  'fa-ir', // Farsi, Iran
   'fr', // French
   'zh-cn', // Chinese, Simplified
   'ca', // Catalan
@@ -55,6 +57,7 @@ const rtlLocales = [
   'ar', // Arabic
   'he', // Hebrew
   'fa', // Farsi (not currently supported)
+  'fa-ir', // Farsi Iran
   'ur', // Urdu (not currently supported)
 ];
 
@@ -164,7 +167,7 @@ export function getLocale(locale) {
   // Note that some browers prefer upper case for the region part of the locale, while others don't.
   // Thus the toLowerCase, for consistency.
   // https://developer.mozilla.org/en-US/docs/Web/API/NavigatorLanguage/language
-  return findSupportedLocale(global.navigator.language.toLowerCase());
+  return findSupportedLocale(globalThis.navigator.language.toLowerCase());
 }
 
 /**
@@ -196,9 +199,9 @@ export function isRtl(locale) {
  */
 export function handleRtl() {
   if (isRtl(getLocale())) {
-    global.document.getElementsByTagName('html')[0].setAttribute('dir', 'rtl');
+    globalThis.document.getElementsByTagName('html')[0].setAttribute('dir', 'rtl');
   } else {
-    global.document.getElementsByTagName('html')[0].setAttribute('dir', 'ltr');
+    globalThis.document.getElementsByTagName('html')[0].setAttribute('dir', 'ltr');
   }
 }
 
@@ -233,12 +236,15 @@ const optionsShape = {
 /**
  *
  *
- * @param {Array} [messagesArray=[]]
+ * @param {Object} newMessages
  * @returns {Object}
  * @memberof module:Internationalization
  */
-export function mergeMessages(messagesArray = []) {
-  return Array.isArray(messagesArray) ? merge({}, ...messagesArray) : {};
+export function mergeMessages(newMessages) {
+  const msgs = Array.isArray(newMessages) ? merge({}, ...newMessages) : newMessages;
+  messages = merge(messages, msgs);
+
+  return messages;
 }
 
 /**
@@ -259,7 +265,7 @@ export function configure(options) {
   loggingService = options.loggingService;
   // eslint-disable-next-line prefer-destructuring
   config = options.config;
-  messages = Array.isArray(options.messages) ? mergeMessages(options.messages) : options.messages;
+  messages = Array.isArray(options.messages) ? merge({}, ...options.messages) : options.messages;
 
   if (config.ENVIRONMENT !== 'production') {
     Object.keys(messages).forEach((key) => {

@@ -1,22 +1,24 @@
 import React from 'react';
-import { mount } from 'enzyme';
+import { render } from '@testing-library/react';
 
 import ErrorBoundary from './ErrorBoundary';
-
-import { logError } from '../logging';
-import { IntlProvider } from '../i18n';
-
-jest.mock('../logging');
+import { initializeMockApp } from '..';
 
 describe('ErrorBoundary', () => {
-  beforeEach(() => {
+  let logError = jest.fn();
+
+  beforeEach(async () => {
     // This is a gross hack to suppress error logs in the invalid parentSelector test
     jest.spyOn(console, 'error');
     global.console.error.mockImplementation(() => {});
+
+    const { loggingService } = initializeMockApp();
+    logError = loggingService.logError;
   });
 
   afterEach(() => {
     global.console.error.mockRestore();
+    jest.clearAllMocks();
   });
 
   it('should render children if no error', () => {
@@ -25,10 +27,10 @@ describe('ErrorBoundary', () => {
         <div>Yay</div>
       </ErrorBoundary>
     );
-    const wrapper = mount(component);
+    const { container: wrapper } = render(component);
 
-    const element = wrapper.find('div');
-    expect(element.text()).toEqual('Yay');
+    const element = wrapper.querySelector('div');
+    expect(element.textContent).toEqual('Yay');
   });
 
   it('should render ErrorPage if it has an error', () => {
@@ -37,15 +39,46 @@ describe('ErrorBoundary', () => {
     };
 
     const component = (
-      <IntlProvider locale="en" messages={{}}>
-        <ErrorBoundary>
-          <ExplodingComponent />
-        </ErrorBoundary>
-      </IntlProvider>
+      <ErrorBoundary>
+        <ExplodingComponent />
+      </ErrorBoundary>
     );
-    mount(component);
+
+    render(component);
 
     expect(logError).toHaveBeenCalledTimes(1);
-    expect(logError).toHaveBeenCalledWith(new Error('booyah'), { stack: '\n    in ExplodingComponent\n    in ErrorBoundary\n    in IntlProvider (created by WrapperComponent)\n    in WrapperComponent' });
+    expect(logError).toHaveBeenCalledWith(
+      new Error('booyah'),
+      expect.objectContaining({
+        stack: expect.stringContaining('ExplodingComponent'),
+      }),
+    );
+  });
+  it('should render the fallback component when an error occurs', () => {
+    function FallbackComponent() {
+      return <div data-testid="fallback-component">Oops, something went wrong!</div>;
+    }
+    function ComponentError() {
+      throw new Error('An error occurred during the click event!');
+    }
+    const wrapper = render(
+      <ErrorBoundary fallbackComponent={<FallbackComponent />}>
+        <ComponentError />
+      </ErrorBoundary>,
+    );
+
+    expect(wrapper.queryByTestId('fallback-component')).toBeInTheDocument();
+  });
+
+  it('should render the ErrorPage fallbackComponent is null', () => {
+    function ComponentError() {
+      throw new Error('An error occurred during the click event!');
+    }
+    const wrapper = render(
+      <ErrorBoundary fallbackComponent={null}>
+        <ComponentError />
+      </ErrorBoundary>,
+    );
+    expect(wrapper.queryByTestId('error-page')).toBeInTheDocument();
   });
 });

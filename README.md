@@ -1,15 +1,15 @@
-[![Build Status](https://github.com/edx/frontend-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/edx/frontend-platform/actions/workflows/ci.yml)
+[![Build Status](https://github.com/openedx/frontend-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/openedx/frontend-platform/actions/workflows/ci.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/edx/frontend-platform)](https://codecov.io/gh/edx/frontend-platform)
 [![NPM Version](https://img.shields.io/npm/v/@edx/frontend-platform.svg)](https://www.npmjs.com/package/@edx/frontend-platform)
 [![npm_downloads](https://img.shields.io/npm/dt/@edx/frontend-platform.svg)](https://www.npmjs.com/package/@edx/frontend-platform)
-[![license](https://img.shields.io/npm/l/@edx/frontend-platform.svg)](https://github.com/edx/frontend-platform/blob/master/LICENSE)
+[![license](https://img.shields.io/npm/l/@edx/frontend-platform.svg)](https://github.com/openedx/frontend-platform/blob/master/LICENSE)
 [![semantic release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
 # Overview
 
 See the [GitHub Pages site for the complete documentation](https://openedx.github.io/frontend-platform/).
 
-frontend-platform is a modest application framework for Open edX micro-frontend applications and their supporting libraries. It provides a number of foundational services that all Open edX micro-frontends should have:
+frontend-platform is a modest application framework for Open edX micro-frontend applications and their supporting libraries. It provides several foundational services that all Open edX micro-frontends should have:
 
 | Service                            | Module location                  |
 |------------------------------------|----------------------------------|
@@ -25,24 +25,17 @@ In addition, frontend-platform provides an extensible application initialization
 
 ## Getting started
 
-### One-time setup if you have not ugpraded node/npm
-IMPORTANT: There is now a new node/npm version being used by frontend-platform as of
-https://github.com/edx/frontend-platform/pull/259
+### One-time setup if you have not upgraded node/npm
 
 #### Install nvm
-This is highly recommended in order to be able to leverage different node/npm versions.
-For a period of time, different repositories may be using different versions of node/npm.
-
-Alternatively, please install node16 and npm8 for use with this repository.
+This is highly recommended to be able to leverage different node/npm versions. For some time, different repositories may be using different versions of node/npm.
 
 #### Switch to node/npm version for this repo
-```nvm use```
-if you don't have the right node/npm versions, nvm will instruct you to install those
+In the project’s root directory, run `nvm use` to set your environment to the correct node version. If the required node or npm versions are not installed, nvm will prompt you to install them.
 
 #### Clean out old node modules and reinstall
 This step is needed because node now uses a different package lock format, and it's important to reinstall
-dependencies based on this new package file. Delete node_modules, and issue a `npm ci`
-
+dependencies based on this new package file. Delete `node_modules`, and run `npm ci`.
 
 ### Standard getting started steps
 
@@ -83,7 +76,7 @@ Most applications won't need to do anything special at all.
 
 When the application loads, a list of known environment variables is loaded from `process.env` into an object which it exposes via `getConfig` - the point here is primarily to isolate our code from usages of `process.env` which may not always be the way we choose to configure our apps.  The application initialization lifecycle supports runtime configuration as well via the `config` handler, documented in the [initialize function](https://edx.github.io/frontend-platform/module-Initialization.html#~initialize).  If you want to get a variable into the config that it’s not expecting, you can use [`mergeConfig`](https://edx.github.io/frontend-platform/module-Config.html#~mergeConfig) during initialization to add it in from `process.env`.
 
-Such an example might look like:
+Such an example might look like this:
 
 ```
 initialize({
@@ -98,7 +91,7 @@ initialize({
 });
 ```
 
-When using runtime configuration via `mergeConfig` noted above, `getConfig` must be called within a component's render lifecycle in order for the added keys and values to be returned in the configuration object. If `getConfig` is called outside of a component's render lifecycle, the custom configuration key/value pairs will not initially be part of the object returned by `getConfig`. For example:
+When using runtime configuration via `mergeConfig` as noted above, `getConfig` must be called within a component's render lifecycle for the added keys and values to be returned in the configuration object. If `getConfig` is called outside of a component's render lifecycle, the custom configuration key/value pairs will not initially be part of the object returned by `getConfig`. For example:
 
 ```jsx
 import { getConfig } from '@edx/frontend-platform/config';
@@ -108,14 +101,32 @@ import { getConfig } from '@edx/frontend-platform/config';
 console.log(getConfig().CUSTOM_VARIABLE); // returns undefined
 
 const ExampleComponent = () => {
-  // This returns the value as expected since it is called after `mergeConfig` has already executed.
+  // This returns the value as expected since it is called after `mergeConfig` has already been executed.
   console.log(getConfig().CUSTOM_VARIABLE)
 };
 ```
 
+#### Overriding default external links
+
+A `getExternalLinkUrl` function is provided in `config.js` which can be used to override default external links. To make use of this function, provide an object that maps default links to custom links. This object should be added to the `config` object defined in the `env.config.[js,jsx,ts,tsx]`, and must be named `externalLinkUrlOverrides`. Here is an example:
+
+```js
+// env.config.js
+
+const config = {
+  // other custom configuration here
+  externalLinkUrlOverrides: {
+    "https://docs.openedx.org/en/latest/educators/index.html": "https://custom.example.com/educators/index.html",
+    "https://creativecommons.org/licenses": "https://www.tldrlegal.com/license/creative-commons-attribution-cc",
+  },
+};
+
+export default config;
+```
+
 ### Service interfaces
 
-Each service (analytics, auth, i18n, logging) provided by frontend-platform has a API contract which all implementations of that service are guaranteed to fulfill.  Applications that use frontend-platform can use its configured services via a convenient set of exported functions.  An application that wants to use the service interfaces need only initialize them via the initialize() function, optionally providing custom service interfaces as desired (you probably won't need to).
+Each service (analytics, auth, i18n, logging) provided by frontend-platform has an API contract which all implementations of that service are guaranteed to fulfill.  Applications that use frontend-platform can use its configured services via a convenient set of exported functions.  An application that wants to use the service interfaces need only initialize them via the initialize() function, optionally providing custom service interfaces as desired (you probably won't need to).
 
 ![Service interface](service-interface.png)
 
@@ -130,10 +141,26 @@ The included service implementations are:
 - Axios/JWT (auth)
 - React Intl (i18n)
 
-NOTE: As of this writing, i18n is _not_ configurable.  The `initialize()` function does not allow applications to supply an alternate i18n implementation; this is because the interface and implementation for i18n has not yet been separated and modularized.
+NOTE: As of this writing, i18n is _not_ configurable.  The `initialize()` function does not allow applications to supply an alternative i18n implementation; this is because the interface and implementation for i18n has not yet been separated and modularized.
 
-# Local development & testing locally
+# Local Development & Testing Locally
 
 When making changes to frontend-platform, be sure to manually run the included example app located in `./example`. The example app includes 2 routes to test for both unauthenticated and authenticated users. To start the example app, run `npm start` from the root directory.
 
-If you want to test changes to frontend-platform against a micro-frontend locally, follow the directions here: https://github.com/edx/frontend-build#local-module-configuration-for-webpack
+If you want to test changes to frontend-platform against a micro-frontend locally, follow the directions here: https://github.com/openedx/frontend-build#local-module-configuration-for-webpack
+
+# Production Deployment Strategy
+
+For any MFE built on top of the frontend-platform, the deployment strategy will be something like the following:
+
+1. Run the build script with environment variables on the command line to pass in any relevant config. Example:
+
+   ```bash
+   NODE_ENV=development BASE_URL=open.edx.org ETC=etc npm run build
+   ```
+
+   This will create a dist/ directory that contains the deployable artifacts.
+
+2. Copy the contents of dist/ to a web server.
+
+3. Configure the platform to point at your MFE. (details on this coming soon)

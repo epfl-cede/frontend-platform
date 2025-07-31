@@ -80,7 +80,7 @@ describe('lib', () => {
         messages: {},
       });
 
-      expect(console.warn).toHaveBeenCalledTimes(13);
+      expect(console.warn).toHaveBeenCalledTimes(15);
       expect(console.warn).toHaveBeenCalledWith('Missing locale: ar');
       expect(console.warn).toHaveBeenCalledWith('Missing locale: es-419');
       expect(console.warn).toHaveBeenCalledWith('Missing locale: fr');
@@ -188,6 +188,7 @@ describe('lib', () => {
       expect(isRtl('ar')).toBe(true);
       expect(isRtl('he')).toBe(true);
       expect(isRtl('fa')).toBe(true);
+      expect(isRtl('fa-ir')).toBe(true);
       expect(isRtl('ur')).toBe(true);
     });
 
@@ -249,9 +250,40 @@ describe('lib', () => {
 });
 
 describe('mergeMessages', () => {
+  it('should merge objects', () => {
+    configure({
+      loggingService: { logError: jest.fn() },
+      config: {
+        ENVIRONMENT: 'production',
+        LANGUAGE_PREFERENCE_COOKIE_NAME: 'yum',
+      },
+      messages: {
+        ar: { message: 'ar-hah' },
+      },
+    });
+    const result = mergeMessages({ en: { foo: 'bar' }, de: { buh: 'baz' }, jp: { gah: 'wut' } });
+    expect(result).toEqual({
+      ar: { message: 'ar-hah' },
+      en: { foo: 'bar' },
+      de: { buh: 'baz' },
+      jp: { gah: 'wut' },
+    });
+  });
+
   it('should merge objects from an array', () => {
+    configure({
+      loggingService: { logError: jest.fn() },
+      config: {
+        ENVIRONMENT: 'production',
+        LANGUAGE_PREFERENCE_COOKIE_NAME: 'yum',
+      },
+      messages: {
+        ar: { message: 'ar-hah' },
+      },
+    });
     const result = mergeMessages([{ foo: 'bar' }, { buh: 'baz' }, { gah: 'wut' }]);
     expect(result).toEqual({
+      ar: { message: 'ar-hah' },
       foo: 'bar',
       buh: 'baz',
       gah: 'wut',
@@ -259,6 +291,17 @@ describe('mergeMessages', () => {
   });
 
   it('should merge nested objects from an array', () => {
+    configure({
+      loggingService: { logError: jest.fn() },
+      config: {
+        ENVIRONMENT: 'production',
+        LANGUAGE_PREFERENCE_COOKIE_NAME: 'yum',
+      },
+      messages: {
+        en: { init: 'initial' },
+        es: { init: 'inicial' },
+      },
+    });
     const messages = [
       {
         en: { hello: 'hello' },
@@ -273,10 +316,12 @@ describe('mergeMessages', () => {
     const result = mergeMessages(messages);
     expect(result).toEqual({
       en: {
+        init: 'initial',
         hello: 'hello',
         goodbye: 'goodbye',
       },
       es: {
+        init: 'inicial',
         hello: 'hola',
         goodbye: 'adiós',
       },
@@ -284,8 +329,32 @@ describe('mergeMessages', () => {
   });
 
   it('should return an empty object if no messages', () => {
+    configure({
+      loggingService: { logError: jest.fn() },
+      config: {
+        ENVIRONMENT: 'production',
+        LANGUAGE_PREFERENCE_COOKIE_NAME: 'yum',
+      },
+      messages: {},
+    });
     expect(mergeMessages(undefined)).toEqual({});
     expect(mergeMessages(null)).toEqual({});
     expect(mergeMessages([])).toEqual({});
+    expect(mergeMessages({})).toEqual({});
+  });
+
+  it('should return the original object if no messages', () => {
+    configure({
+      loggingService: { logError: jest.fn() },
+      config: {
+        ENVIRONMENT: 'production',
+        LANGUAGE_PREFERENCE_COOKIE_NAME: 'yum',
+      },
+      messages: { en: { hello: 'world ' } },
+    });
+    expect(mergeMessages(undefined)).toEqual({ en: { hello: 'world ' } });
+    expect(mergeMessages(null)).toEqual({ en: { hello: 'world ' } });
+    expect(mergeMessages([])).toEqual({ en: { hello: 'world ' } });
+    expect(mergeMessages({})).toEqual({ en: { hello: 'world ' } });
   });
 });

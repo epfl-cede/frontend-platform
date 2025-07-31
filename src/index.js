@@ -5,6 +5,8 @@ export {
   convertKeyNames,
   getQueryParameters,
   ensureDefinedConfig,
+  parseURL,
+  getPath,
 } from './utils';
 export {
   APP_TOPIC,
@@ -35,6 +37,7 @@ export {
   setConfig,
   mergeConfig,
   ensureConfig,
+  getExternalLinkUrl,
 } from './config';
 export {
   initializeMockApp,
